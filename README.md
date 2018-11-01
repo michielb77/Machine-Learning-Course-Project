@@ -1,2 +1,4 @@
-# Machine-Learning-Course-Project
+# Machine Learning Course Project
 Coursera course on machine learning
+
+
