@@ -226,9 +226,9 @@ This is just playing around a bit, nothing rigourous, but at this point I am sta
 ## Random forest
 So I would like to switch to random forests, but how will I get acceptable performance? I don't want to be waiting for 50 minutes, only to discover that I am not using the proper variables. So I decided to start with a small sample of the data.
 
-Using only 1000 rows from the training set, and only using the variables that worked well with rpart I got a model accuracy of 99%. This is a very nice result and only took about 2 minutes to run.
+Using only 1000 rows from the data, and only using the variables that worked well with rpart I got a model accuracy of 99%. This is a very nice result and only took about 2 minutes to run.
 
-So I decided to train the model on the full dataset.
+So I decided to train the model on all rows of the dataset.
 
 ```{r select proper variables}
 data_pruned <- data %>% select(classe, roll_belt:yaw_belt, roll_arm:yaw_arm)
@@ -239,7 +239,7 @@ To evaluate the model, we split the dataset into a training and a test set. The 
 ```{r splitting data}
 set.seed(3456) # for reproducability
 
-inTrain <- caret::createDataPartition(training$user_name, p = .7, list = FALSE)
+inTrain <- caret::createDataPartition(data$user_name, p = .7, list = FALSE)
 
 training <- data_pruned[inTrain,]
 testing <- data_pruned[-inTrain,]
