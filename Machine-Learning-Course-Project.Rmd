@@ -1,6 +1,8 @@
 ---
 title: "Machine Learning Course Project"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r}
@@ -202,9 +204,9 @@ Then there is the new_window en num_window variables. I am not exactly sure what
 
 # Model
 ## RPart
-I wanted to start by using machine learning algorithms such as random forests and regularized regression. The training set is pretty big, so I concered about the time it might take to train the models. To reduce training time, I decided to start training with only 3 variables, just to get a feel for the problem and the training times involved. But even using just 3 variables, training times were already longer then several minutes which I didn't like in this stage.
+I wanted to start by using machine learning algorithms such as random forests and regularized regression. The training set is pretty big, so I was concered about the time it might take to train the models. To reduce training time, I decided to start training with only 3 variables, just to get a feel for the problem and the training times involved. But even using just 3 variables, training times were already longer then several minutes which I didn't like in this stage.
 
-So I switched to rpart, which is not so sophisticated but runs fast. By manual inspection of the data, I see that a lot of columns contain lots of junk (lots of NA or the same value over and over again). So rather than trying to prune all the bad data columns, I decide to start with columns that seem to contain usefull and relevant data.
+So I switched to rpart, which is not as sophisticated but runs fast. By manual inspection of the data and use of the summary function, I see that a lot of columns contain lots of junk (lots of NA or the same value over and over again). So rather than trying to prune all the bad data columns, I decide to start with columns that seem to contain usefull and relevant data.
 
 I quickly discover that roll_belt through yaw_belt and roll_arm through yaw_arm columns give me an accuracy score of around 67%. This is not too bad given the basic algorithm and the limited number of variables.
 
@@ -224,22 +226,26 @@ I have tried this with several (groups of) variables:
 This is just playing around a bit, nothing rigourous, but at this point I am starting to think that 67% is all the accuracy I am going to get out of rpart.
 
 ## Random forest
+Random forest is a powerfull machine learning algorithm that includes cross-validation to prevent overfitting.
+
 So I would like to switch to random forests, but how will I get acceptable performance? I don't want to be waiting for 50 minutes, only to discover that I am not using the proper variables. So I decided to start with a small sample of the data.
 
 Using only 1000 rows from the data, and only using the variables that worked well with rpart I got a model accuracy of 99%. This is a very nice result and only took about 2 minutes to run.
 
-So I decided to train the model on all rows of the dataset.
+So I decided to train the model on a bigger dataset.
 
 ```{r select proper variables}
 data_pruned <- data %>% select(classe, roll_belt:yaw_belt, roll_arm:yaw_arm)
 ```
 
-To evaluate the model, we split the dataset into a training and a test set. The test set that is provided with the assignment cannot be used for this, because it does not contain classes. It is intended to be used for the quiz. 
+To evaluate the model, I split the dataset into a training and a testing set. The test set that is provided with the assignment cannot be used for this, because it does not contain classes. It is intended to be used for the quiz.
+
+I assigned 50% of the dataset to the trainingset. This is a low percentage, often 70% or 80% is used. However, the machine I am currently using will crash when the trainingset gets to big. And I find the result using 50% are acceptable. 
 
 ```{r splitting data}
 set.seed(3456) # for reproducability
 
-inTrain <- caret::createDataPartition(data$user_name, p = .7, list = FALSE)
+inTrain <- caret::createDataPartition(data$user_name, p = .5, list = FALSE)
 
 training <- data_pruned[inTrain,]
 testing <- data_pruned[-inTrain,]
@@ -253,7 +259,11 @@ pred <- predict(fit, training)
 confusionMatrix(pred, factor(training$classe))
 ```
 
-Evaluate model performance on test set.
+# Out of sample error
+To make sure I didn´t overfit the model and to get a reliable estimate for the out-of-sample error, I will now use the model to make predictions for the testing data and see how well the model performs.
+
+This results in an accuracy of 94%.
+
 ```{r}
 pred_test <- predict(fit, newdata = testing)
 
