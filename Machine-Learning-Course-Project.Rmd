@@ -198,47 +198,13 @@ As explained [here](http://web.archive.org/web/20161224072740/http:/groupware.le
 count(training, classe)
 ```
 
-There are three columns containing timestamp information. I don't think these are relevant for predicting. I might be able to deduce a duration from them, which might in turn help with predicting. But at this point, I am not quite sure what these timestamps even mean. Are they seconds? Milliseconds? What is the offset? I will ignore them for now.
+There are three columns containing timestamp information. I don't think these are relevant for predicting. I might be able to deduce a duration from them, which might in turn help with predicting. But at this point, I will ignore them and see if I can get good predictions based on the other variables.
 
-Then there is the column new_window. It only contains "yes" or "no". It is mostly "no" and will only be "yes" if the nu
-```{r}
-```
-
-```{r}
-count(training, new_window)
-```
-
-```{r}
-training %>% count(user_name, num_window) %>% count(user_name)
-```
-
-# Cleanup
-
-```{r}
-cleanup <- function(data) {
-  data %>% select(-(raw_timestamp_part_1:cvtd_timestamp))
-}
-
-training <- cleanup(training)
-```
-
-The dataset has a large number of columns that have very little variance. To reduce training time, these columns should be removed in preprocessing.
-
-```{r}
-#nzv <- nearZeroVar(training, saveMetrics = TRUE)
-
-#nzv %>% filter(nzv == TRUE)
-
-training_zonder_classe <- training %>% select(-classe)
-
-pp <- preProcess(training_zonder_classe, method = c("nzv"))
-
-pp
-```
+Then there is the new_window en num_window variables. I am not exactly sure what they mean, so I will also not use these for predictions
 
 # Model
 ## RPart
-I start by exploring some machine learning algorithms such as random forests and glmnet. To reduce training time, but even if I train with only 3 columns, training time is longer then several minutes which I don't like in this stage.
+I wanted to start by using machine learning algorithms such as random forests and regularized regression. The training set is pretty big, so I concered about the time it might take to train the models. To reduce training time, I decided to start training with only 3 variables, just to get a feel for the problem and the training times involved. But even using just 3 variables, training times were already longer then several minutes which I didn't like in this stage.
 
 So I switch to rpart, which runs fast. By manual inspection of the data, I see that most column contain lots of junk (lots of NA). So rather than trying to prune all the bad data column, I decide to start with column that seem to contain usefull and relevant data.
 
