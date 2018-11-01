@@ -5,8 +5,276 @@ output: html_notebook
 
 ```{r}
 library(readr)
+library(dplyr)
+library(caret)
+```
+
+```{r download data}
+training_data_url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+
+training_file_name <- "pml-training.csv"
+
+if(!file.exists(training_file_name))
+  download.file(training_data_url, training_file_name)
+```
+
+magnet_dumbbell_z, magnet_forearm_y, magnet_forearm_z changed from int to double. Does that mean I should also change the x,y,z variants for those variables. In general, shouldn't just almost all columns be doubles?
+
+```{r read data}
+training <- read_csv(training_file_name, na = "#DIV/0!", col_types = cols(
+  X1 = col_skip(), # contains just the row number
+  user_name = col_character(),
+  raw_timestamp_part_1 = col_integer(),
+  raw_timestamp_part_2 = col_integer(),
+  cvtd_timestamp = col_character(),
+  new_window = col_factor(levels = c("yes", "no")),
+  num_window = col_integer(),
+  roll_belt = col_double(),
+  pitch_belt = col_double(),
+  yaw_belt = col_double(),
+  total_accel_belt = col_integer(),
+  kurtosis_roll_belt = col_double(),
+  kurtosis_picth_belt = col_double(),
+  kurtosis_yaw_belt = col_character(),
+  skewness_roll_belt = col_double(),
+  skewness_roll_belt.1 = col_double(),
+  skewness_yaw_belt = col_character(),
+  max_roll_belt = col_character(),
+  max_picth_belt = col_character(),
+  max_yaw_belt = col_double(),
+  min_roll_belt = col_character(),
+  min_pitch_belt = col_character(),
+  min_yaw_belt = col_double(),
+  amplitude_roll_belt = col_character(),
+  amplitude_pitch_belt = col_character(),
+  amplitude_yaw_belt = col_double(),
+  var_total_accel_belt = col_character(),
+  avg_roll_belt = col_character(),
+  stddev_roll_belt = col_character(),
+  var_roll_belt = col_character(),
+  avg_pitch_belt = col_character(),
+  stddev_pitch_belt = col_character(),
+  var_pitch_belt = col_character(),
+  avg_yaw_belt = col_character(),
+  stddev_yaw_belt = col_character(),
+  var_yaw_belt = col_character(),
+  gyros_belt_x = col_double(),
+  gyros_belt_y = col_double(),
+  gyros_belt_z = col_double(),
+  accel_belt_x = col_integer(),
+  accel_belt_y = col_integer(),
+  accel_belt_z = col_integer(),
+  magnet_belt_x = col_integer(),
+  magnet_belt_y = col_integer(),
+  magnet_belt_z = col_integer(),
+  roll_arm = col_double(),
+  pitch_arm = col_double(),
+  yaw_arm = col_double(),
+  total_accel_arm = col_integer(),
+  var_accel_arm = col_character(),
+  avg_roll_arm = col_character(),
+  stddev_roll_arm = col_character(),
+  var_roll_arm = col_character(),
+  avg_pitch_arm = col_character(),
+  stddev_pitch_arm = col_character(),
+  var_pitch_arm = col_character(),
+  avg_yaw_arm = col_character(),
+  stddev_yaw_arm = col_character(),
+  var_yaw_arm = col_character(),
+  gyros_arm_x = col_double(),
+  gyros_arm_y = col_double(),
+  gyros_arm_z = col_double(),
+  accel_arm_x = col_integer(),
+  accel_arm_y = col_integer(),
+  accel_arm_z = col_integer(),
+  magnet_arm_x = col_integer(),
+  magnet_arm_y = col_integer(),
+  magnet_arm_z = col_integer(),
+  kurtosis_roll_arm = col_double(),
+  kurtosis_picth_arm = col_double(),
+  kurtosis_yaw_arm = col_double(),
+  skewness_roll_arm = col_double(),
+  skewness_pitch_arm = col_double(),
+  skewness_yaw_arm = col_double(),
+  max_roll_arm = col_character(),
+  max_picth_arm = col_character(),
+  max_yaw_arm = col_character(),
+  min_roll_arm = col_character(),
+  min_pitch_arm = col_character(),
+  min_yaw_arm = col_character(),
+  amplitude_roll_arm = col_character(),
+  amplitude_pitch_arm = col_character(),
+  amplitude_yaw_arm = col_character(),
+  roll_dumbbell = col_double(),
+  pitch_dumbbell = col_double(),
+  yaw_dumbbell = col_double(),
+  kurtosis_roll_dumbbell = col_double(),
+  kurtosis_picth_dumbbell = col_double(),
+  kurtosis_yaw_dumbbell = col_character(),
+  skewness_roll_dumbbell = col_double(),
+  skewness_pitch_dumbbell = col_double(),
+  skewness_yaw_dumbbell = col_character(),
+  max_roll_dumbbell = col_character(),
+  max_picth_dumbbell = col_character(),
+  max_yaw_dumbbell = col_double(),
+  min_roll_dumbbell = col_character(),
+  min_pitch_dumbbell = col_character(),
+  min_yaw_dumbbell = col_double(),
+  amplitude_roll_dumbbell = col_character(),
+  amplitude_pitch_dumbbell = col_character(),
+  amplitude_yaw_dumbbell = col_double(),
+  total_accel_dumbbell = col_integer(),
+  var_accel_dumbbell = col_character(),
+  avg_roll_dumbbell = col_character(),
+  stddev_roll_dumbbell = col_character(),
+  var_roll_dumbbell = col_character(),
+  avg_pitch_dumbbell = col_character(),
+  stddev_pitch_dumbbell = col_character(),
+  var_pitch_dumbbell = col_character(),
+  avg_yaw_dumbbell = col_character(),
+  stddev_yaw_dumbbell = col_character(),
+  var_yaw_dumbbell = col_character(),
+  gyros_dumbbell_x = col_double(),
+  gyros_dumbbell_y = col_double(),
+  gyros_dumbbell_z = col_double(),
+  accel_dumbbell_x = col_integer(),
+  accel_dumbbell_y = col_integer(),
+  accel_dumbbell_z = col_integer(),
+  magnet_dumbbell_x = col_integer(),
+  magnet_dumbbell_y = col_integer(),
+  magnet_dumbbell_z = col_double(),
+  roll_forearm = col_double(),
+  pitch_forearm = col_double(),
+  yaw_forearm = col_double(),
+  kurtosis_roll_forearm = col_double(),
+  kurtosis_picth_forearm = col_double(),
+  kurtosis_yaw_forearm = col_character(),
+  skewness_roll_forearm = col_double(),
+  skewness_pitch_forearm = col_double(),
+  skewness_yaw_forearm = col_character(),
+  max_roll_forearm = col_character(),
+  max_picth_forearm = col_character(),
+  max_yaw_forearm = col_double(),
+  min_roll_forearm = col_character(),
+  min_pitch_forearm = col_character(),
+  min_yaw_forearm = col_double(),
+  amplitude_roll_forearm = col_character(),
+  amplitude_pitch_forearm = col_character(),
+  amplitude_yaw_forearm = col_double(),
+  total_accel_forearm = col_integer(),
+  var_accel_forearm = col_character(),
+  avg_roll_forearm = col_character(),
+  stddev_roll_forearm = col_character(),
+  var_roll_forearm = col_character(),
+  avg_pitch_forearm = col_character(),
+  stddev_pitch_forearm = col_character(),
+  var_pitch_forearm = col_character(),
+  avg_yaw_forearm = col_character(),
+  stddev_yaw_forearm = col_character(),
+  var_yaw_forearm = col_character(),
+  gyros_forearm_x = col_double(),
+  gyros_forearm_y = col_double(),
+  gyros_forearm_z = col_double(),
+  accel_forearm_x = col_integer(),
+  accel_forearm_y = col_integer(),
+  accel_forearm_z = col_integer(),
+  magnet_forearm_x = col_integer(),
+  magnet_forearm_y = col_double(),
+  magnet_forearm_z = col_double(),
+  classe = col_character()
+))
+```
+
+# Data exploration
+We have data on six different subjects.
+
+```{r}
+count(training, user_name)
+```
+
+As explained [here](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har) subjects were asked to perform an activity (one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl). They were asked to either perform them correctly (classe A) or wrong in a specific way (classes B-E).
+
+```{r}
+count(training, classe)
+```
+
+There are three columns containing timestamp information. I don't think these are relevant for predicting. I might be able to deduce a duration from them, which might in turn help with predicting. But at this point, I am not quite sure what these timestamps even mean. Are they seconds? Milliseconds? What is the offset? I will ignore them for now.
+
+Then there is the column new_window. It only contains "yes" or "no". It is mostly "no" and will only be "yes" if the nu
+```{r}
 ```
 
 ```{r}
- https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+count(training, new_window)
+```
+
+```{r}
+training %>% count(user_name, num_window) %>% count(user_name)
+```
+
+# Cleanup
+
+```{r}
+cleanup <- function(data) {
+  data %>% select(-(raw_timestamp_part_1:cvtd_timestamp))
+}
+
+training <- cleanup(training)
+```
+
+The dataset has a large number of columns that have very little variance. To reduce training time, these columns should be removed in preprocessing.
+
+```{r}
+#nzv <- nearZeroVar(training, saveMetrics = TRUE)
+
+#nzv %>% filter(nzv == TRUE)
+
+training_zonder_classe <- training %>% select(-classe)
+
+pp <- preProcess(training_zonder_classe, method = c("nzv"))
+
+pp
+```
+
+# Model
+## RPart
+I start by exploring some machine learning algorithms such as random forests and glmnet. To reduce training time, but even if I train with only 3 columns, training time is longer then several minutes which I don't like in this stage.
+
+So I switch to rpart, which runs fast. By manual inspection of the data, I see that most column contain lots of junk (lots of NA). So rather than trying to prune all the bad data column, I decide to start with column that seem to contain usefull and relevant data.
+
+I quickly discover roll_belt:yaw_belt and roll_arm:yaw_arm which give me an accuracy score of around 67%, not too bad.
+
+Then I notice that if I try adding more columns, accuracy actually goes down. Now what? Does this have to do with the algorithm?
+
+I have tried adding several groups of columns, all of them just make accuracy go down. I didn't go through all sensible columns, but I am starting to think that 67% is all the accuracy I am going to get out of rpart.
+
+## Random forest
+So I would like to switch to random forests, but how will I get acceptable performance? I am going to start with a small sample of the data.
+
+Met 1000 entries heb ik ineens accuracy 99%!? Met 5000 entries zelfs 100%
+
+```{r}
+t <- sample_n(training, 1000)
+
+t <- t %>%
+  select(classe 
+         ,roll_belt:yaw_belt
+         ,roll_arm:yaw_arm#,
+#         gyros_arm_x:gyros_arm_z#,
+#         accel_arm_x:accel_arm_z
+#         ,magnet_arm_x:magnet_arm_z
+#         ,magnet_dumbbell_x:magnet_dumbbell_z
+#         ,roll_dumbbell:yaw_dumbbell
+#         ,total_accel_dumbbell
+#         ,gyros_dumbbell_x:gyros_dumbbell_z
+#          ,accel_dumbbell_x:accel_dumbbell_z
+         )
+
+fit <- caret::train(classe ~ .,
+             t, 
+             method = "rf")
+
+pred <- predict(fit, t)
+
+confusionMatrix(pred, factor(t$classe))
 ```
