@@ -19,7 +19,7 @@ if(!file.exists(training_file_name))
 ```
 
 ```{r read data}
-training <- read_csv(training_file_name, na = "#DIV/0!", col_types = cols(
+data <- read_csv(training_file_name, na = "#DIV/0!", col_types = cols(
   X1 = col_skip(), # contains just the row number
   user_name = col_character(),
   raw_timestamp_part_1 = col_integer(),
@@ -187,13 +187,13 @@ training <- read_csv(training_file_name, na = "#DIV/0!", col_types = cols(
 We have data on six different subjects.
 
 ```{r}
-count(training, user_name)
+count(data, user_name)
 ```
 
 As explained [here](http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har) subjects were asked to perform an activity (one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl). They were asked to either perform them correctly (classe A) or wrong in a specific way (classes B-E).
 
 ```{r}
-count(training, classe)
+count(data, classe)
 ```
 
 There are three columns containing timestamp information. I don't think these are relevant for predicting. I might be able to deduce a duration from them, which might in turn help with predicting. But at this point, I will ignore them and see if I can get good predictions based on the other variables.
@@ -224,21 +224,38 @@ I have tried this with several (groups of) variables:
 This is just playing around a bit, nothing rigourous, but at this point I am starting to think that 67% is all the accuracy I am going to get out of rpart.
 
 ## Random forest
-So I would like to switch to random forests, but how will I get acceptable performance? I don't want to be waiting for 50 minutes, only to discover that I am not using the proper variables. So I decided tos start with a small sample of the data.
+So I would like to switch to random forests, but how will I get acceptable performance? I don't want to be waiting for 50 minutes, only to discover that I am not using the proper variables. So I decided to start with a small sample of the data.
 
 Using only 1000 rows from the training set, and only using the variables that worked well with rpart I got a model accuracy of 99%. This is a very nice result and only took about 2 minutes to run.
 
 So I decided to train the model on the full dataset.
 
-```{r}
-t <- training %>% select(classe, roll_belt:yaw_belt, roll_arm:yaw_arm)
-
-fit <- caret::train(classe ~ ., t, method = "rf")
-
-pred <- predict(fit, t)
-
-confusionMatrix(pred, factor(t$classe))
+```{r select proper variables}
+data_pruned <- data %>% select(classe, roll_belt:yaw_belt, roll_arm:yaw_arm)
 ```
 
-# Model performance
+To evaluate the model, we split the dataset into a training and a test set. The test set that is provided with the assignment cannot be used for this, because it does not contain classes. It is intended to be used for the quiz. 
+
+```{r splitting data}
+set.seed(3456) # for reproducability
+
+inTrain <- caret::createDataPartition(training$user_name, p = .7, list = FALSE)
+
+training <- data_pruned[inTrain,]
+testing <- data_pruned[-inTrain,]
+```
+
+```{r training the model}
+fit <- caret::train(classe ~ ., training, method = "rf")
+
+pred <- predict(fit, training)
+
+confusionMatrix(pred, factor(training$classe))
+```
+
 Evaluate model performance on test set.
+```{r}
+pred_test <- predict(fit, newdata = testing)
+
+confusionMatrix(pred_test, factor(testing$classe))
+```
