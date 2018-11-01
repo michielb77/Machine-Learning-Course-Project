@@ -18,8 +18,6 @@ if(!file.exists(training_file_name))
   download.file(training_data_url, training_file_name)
 ```
 
-magnet_dumbbell_z, magnet_forearm_y, magnet_forearm_z changed from int to double. Does that mean I should also change the x,y,z variants for those variables. In general, shouldn't just almost all columns be doubles?
-
 ```{r read data}
 training <- read_csv(training_file_name, na = "#DIV/0!", col_types = cols(
   X1 = col_skip(), # contains just the row number
@@ -206,41 +204,41 @@ Then there is the new_window en num_window variables. I am not exactly sure what
 ## RPart
 I wanted to start by using machine learning algorithms such as random forests and regularized regression. The training set is pretty big, so I concered about the time it might take to train the models. To reduce training time, I decided to start training with only 3 variables, just to get a feel for the problem and the training times involved. But even using just 3 variables, training times were already longer then several minutes which I didn't like in this stage.
 
-So I switch to rpart, which runs fast. By manual inspection of the data, I see that most column contain lots of junk (lots of NA). So rather than trying to prune all the bad data column, I decide to start with column that seem to contain usefull and relevant data.
+So I switched to rpart, which is not so sophisticated but runs fast. By manual inspection of the data, I see that a lot of columns contain lots of junk (lots of NA or the same value over and over again). So rather than trying to prune all the bad data columns, I decide to start with columns that seem to contain usefull and relevant data.
 
-I quickly discover roll_belt:yaw_belt and roll_arm:yaw_arm which give me an accuracy score of around 67%, not too bad.
+I quickly discover that roll_belt through yaw_belt and roll_arm through yaw_arm columns give me an accuracy score of around 67%. This is not too bad given the basic algorithm and the limited number of variables.
 
-Then I notice that if I try adding more columns, accuracy actually goes down. Now what? Does this have to do with the algorithm?
+Then I notice that if I try adding more columns this doesn´t help and sometimes even lowers accuracy actually. 
 
-I have tried adding several groups of columns, all of them just make accuracy go down. I didn't go through all sensible columns, but I am starting to think that 67% is all the accuracy I am going to get out of rpart.
+I have tried this with several (groups of) variables:
+
+* gyros_arm_x through gyros_arm_z
+* accel_arm_x through accel_arm_z
+* magnet_arm_x through magnet_arm_z
+* magnet_dumbbell_x through magnet_dumbbell_z
+* roll_dumbbell through yaw_dumbbell
+* total_accel_dumbbell
+* gyros_dumbbell_x through gyros_dumbbell_z
+* accel_dumbbell_x through accel_dumbbell_z
+
+This is just playing around a bit, nothing rigourous, but at this point I am starting to think that 67% is all the accuracy I am going to get out of rpart.
 
 ## Random forest
-So I would like to switch to random forests, but how will I get acceptable performance? I am going to start with a small sample of the data.
+So I would like to switch to random forests, but how will I get acceptable performance? I don't want to be waiting for 50 minutes, only to discover that I am not using the proper variables. So I decided tos start with a small sample of the data.
 
-Met 1000 entries heb ik ineens accuracy 99%!? Met 5000 entries zelfs 100%
+Using only 1000 rows from the training set, and only using the variables that worked well with rpart I got a model accuracy of 99%. This is a very nice result and only took about 2 minutes to run.
+
+So I decided to train the model on the full dataset.
 
 ```{r}
-t <- sample_n(training, 1000)
+t <- training %>% select(classe, roll_belt:yaw_belt, roll_arm:yaw_arm)
 
-t <- t %>%
-  select(classe 
-         ,roll_belt:yaw_belt
-         ,roll_arm:yaw_arm#,
-#         gyros_arm_x:gyros_arm_z#,
-#         accel_arm_x:accel_arm_z
-#         ,magnet_arm_x:magnet_arm_z
-#         ,magnet_dumbbell_x:magnet_dumbbell_z
-#         ,roll_dumbbell:yaw_dumbbell
-#         ,total_accel_dumbbell
-#         ,gyros_dumbbell_x:gyros_dumbbell_z
-#          ,accel_dumbbell_x:accel_dumbbell_z
-         )
-
-fit <- caret::train(classe ~ .,
-             t, 
-             method = "rf")
+fit <- caret::train(classe ~ ., t, method = "rf")
 
 pred <- predict(fit, t)
 
 confusionMatrix(pred, factor(t$classe))
 ```
+
+# Model performance
+Evaluate model performance on test set.
